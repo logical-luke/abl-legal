@@ -1,0 +1,91 @@
+.abl-consent {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: var(--abl-consent-z, 90);
+  inset-inline-end: 1rem;
+  inset-block-end: var(--abl-consent-bottom, 1rem);
+  width: min(26rem, calc(100% - 2rem));
+  max-height: calc(100dvh - var(--abl-consent-bottom, 1rem) - 1rem);
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid var(--abl-consent-line, #687381);
+  border-radius: var(--abl-consent-radius, 1rem);
+  background: var(--abl-consent-surface, #fff);
+  color: var(--abl-consent-ink, #15202d);
+  box-shadow: var(--abl-consent-shadow, 0 0.5rem 2rem #15202d33);
+  overflow-wrap: anywhere;
+}
+
+.abl-consent[hidden] {
+  display: none;
+}
+
+.abl-consent h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.abl-consent p {
+  margin: 0.65rem 0 0;
+  color: var(--abl-consent-muted, #465566);
+}
+
+.abl-consent [data-abl-consent-status]:empty {
+  margin: 0;
+}
+
+.abl-consent-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-block-start: 1rem;
+}
+
+.abl-consent-choice,
+.abl-consent-close {
+  min-block-size: 2.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.abl-consent-choice {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--abl-consent-line, #687381);
+  border-radius: var(--abl-consent-radius, 1rem);
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+}
+
+.abl-consent-choice:hover {
+  border-color: var(--abl-consent-accent, #194f99);
+  text-decoration: underline;
+}
+
+.abl-consent-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 1rem;
+  margin-block-start: 0.5rem;
+}
+
+.abl-consent-links a,
+.abl-consent-close {
+  color: var(--abl-consent-accent, #194f99);
+  text-decoration: underline;
+}
+
+.abl-consent-close {
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+}
+
+.abl-consent :is(a, button):focus-visible,
+[data-abl-consent-open]:focus-visible {
+  outline: 2px solid var(--abl-consent-focus, #194f99);
+  outline-offset: 2px;
+}
