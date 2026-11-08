@@ -18,14 +18,12 @@ export interface LegalPage {
 export type AnalyticsPolicy = { enabled: false } | {
   enabled: true
   version: string
-  mode?: 'opt-in' | 'notice'
-  basis?: string
   purpose: string
   data: string
   retention: string
   recipients: string
   transfers: string
-}
+} & ({ mode?: 'opt-in'; basis?: string } | { mode: 'notice'; basis: string })
 
 export interface TermsCopy {
   controllerHeading: string

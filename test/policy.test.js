@@ -59,7 +59,7 @@ test('notice mode requires an explicit basis and describes an opt-out', () => {
 
 test('a policy with enabled measurement cannot provide a missing, blank or placeholder disclosure', () => {
   for (const field of ['purpose', 'data', 'retention', 'recipients', 'transfers']) {
-    for (const value of [undefined, ' ', 'TBD', '[INPUT: verify first]']) {
+    for (const value of [undefined, ' ', 'TBD', 'TBD.', 'TODO: verify the processor', 'To be determined', '[INPUT: verify first]']) {
       assert.throws(() => analyticsPolicyVersion({ ...policy, analytics: { ...analytics, [field]: value } }), new RegExp(`analytics\\.${field}`))
     }
   }

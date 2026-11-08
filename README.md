@@ -9,7 +9,7 @@ npm install github:logical-luke/abl-legal#v1.0.0
 npx abl-legal copy public
 ```
 
-Commit the copied files with the pinned dependency. Assert that the deployed copies match `node_modules/abl-legal/assets`. The copy command updates only `public/abl-legal/consent.js` and `public/abl-legal/consent.css`.
+Commit the copied files with the pinned dependency. Run `npx abl-legal check public` in CI to verify the copies match `node_modules/abl-legal/assets`. The copy command updates only `public/abl-legal/consent.js` and `public/abl-legal/consent.css`.
 
 ## Render each component
 
@@ -58,15 +58,15 @@ Import the same copied browser module URL from the site's external analytics boo
 import { analyticsAllowed } from '/abl-legal/consent.js'
 
 window.addEventListener('abl:analytics-consent', ({ detail }) => {
-  if (detail.granted) startAnalytics()
+  if (detail.granted && analyticsAllowed()) startAnalytics()
   else stopAnalytics()
 })
 if (analyticsAllowed()) startAnalytics()
 ```
 
-Use idempotent start and stop functions. A Vite-managed bootstrap can resolve the copied asset with an ignored dynamic import. Keep the URL identical to the layout's module URL so the prompt and sender share one state instance.
+Use idempotent start and stop functions. If starting awaits an SDK import, recheck permission after the import and before creating the SDK. On withdrawal, invalidate any start already in progress. A Vite-managed bootstrap can resolve the copied asset with an ignored dynamic import. Keep the URL identical to the layout's module URL so the prompt and sender share one state instance.
 
-Consent uses one first-party browser value. An accepted choice applies only to its published policy revision. An older or unversioned grant cannot start measurement. A saved decline carries across revisions. If storage rejects a choice, the current page fails closed.
+Consent uses one first-party browser value. An accepted choice applies only to its published policy revision and consent mode. A stale, unscoped or notice-mode acknowledgment cannot authorize opt-in measurement. A saved decline carries across revisions. If storage rejects a choice, the current page fails closed.
 
 For Vue client-rendered pages, call the copied module's `initConsent()` after mounting the prompt. For Astro server-rendered layouts the module initializes automatically.
 

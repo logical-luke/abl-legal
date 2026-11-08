@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -34,10 +34,41 @@ test('copies the shipped assets exactly into a public path with spaces', (t) => 
   assert.equal(readFileSync(unrelatedFile, 'utf8'), 'keep this file');
 });
 
-test('rejects invalid commands and invalid copy arguments', () => {
-  for (const args of [[], ['install'], ['copy'], ['copy', ''], ['copy', 'a', 'b'], ['copy', '--invalid']]) {
+test('checks asset bytes without changing missing or modified files', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'abl-legal-check-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+
+  const publicDirectory = join(directory, 'site public');
+  const destination = join(publicDirectory, 'abl-legal');
+  const copy = run('copy', publicDirectory);
+  assert.equal(copy.status, 0, copy.stderr);
+  const exact = run('check', publicDirectory);
+  assert.equal(exact.status, 0, exact.stderr);
+
+  const css = join(destination, 'consent.css');
+  const differentBytes = Buffer.from([0, 255, 1]);
+  writeFileSync(css, differentBytes);
+  const mismatch = run('check', publicDirectory);
+  assert.equal(mismatch.status, 1);
+  assert.match(mismatch.stderr, /consent\.css differs from the shipped asset/);
+  assert.deepEqual(readFileSync(css), differentBytes);
+
+  rmSync(css);
+  const missing = run('check', publicDirectory);
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /consent\.css/);
+  assert.equal(existsSync(css), false);
+
+  const absentPublicDirectory = join(directory, 'absent public');
+  assert.equal(run('check', absentPublicDirectory).status, 1);
+  assert.equal(existsSync(absentPublicDirectory), false);
+});
+
+test('rejects invalid commands and invalid asset arguments', () => {
+  const invalid = [[], ['install'], ['copy'], ['copy', ''], ['copy', 'a', 'b'], ['copy', '--invalid'], ['check']];
+  for (const args of invalid) {
     const result = run(...args);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Usage: abl-legal copy <public-dir>/);
+    assert.match(result.stderr, /Usage: abl-legal copy\|check <public-dir>/);
   }
 });

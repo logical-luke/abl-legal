@@ -46,7 +46,7 @@ function requireText(value, field) {
   if (
     typeof value !== 'string' ||
     !value.trim() ||
-    /\[(?:input|placeholder|insert|replace)\b[^\]]*\]|^(?:tbd|todo|placeholder|…|\.\.\.)$/i.test(value.trim())
+    /\[(?:input|placeholder|insert|replace)\b[^\]]*\]|^(?:(?:tbd|todo|placeholder|to be determined)(?:[.!?]*$|\s*[:\-\u2013\u2014])|…$|\.\.\.$)/i.test(value.trim())
   ) {
     throw new TypeError(`${field} must contain published text`)
   }

@@ -82,7 +82,7 @@ test('starts after acceptance, reloads the grant and stops after withdrawal', as
   await accept(page).click();
   await expect(prompt(page)).toBeHidden();
   await expect.poll(() => hits.length).toBe(1);
-  expect(await stored(page)).toBe('accepted:v1');
+  expect(await stored(page)).toBe('accepted:opt-in:v1');
 
   await page.reload();
   await expect(prompt(page)).toBeHidden();
@@ -97,7 +97,7 @@ test('starts after acceptance, reloads the grant and stops after withdrawal', as
   expect(hits).toHaveLength(2);
 });
 
-for (const previous of ['accepted', 'accepted:v1']) {
+for (const previous of ['accepted', 'accepted:v1', 'accepted:opt-in:v1']) {
   test(`requires a new grant after saved ${previous} on a revised policy`, async ({ page }) => {
     await page.addInitScript(({ name, value }) => localStorage.setItem(name, value), { name: key, value: previous });
     const hits = monitor(page);
@@ -106,7 +106,7 @@ for (const previous of ['accepted', 'accepted:v1']) {
     expect(hits).toHaveLength(0);
     await accept(page).click();
     await expect.poll(() => hits.length).toBe(1);
-    expect(await stored(page)).toBe('accepted:v2');
+    expect(await stored(page)).toBe('accepted:opt-in:v2');
   });
 }
 
@@ -162,7 +162,7 @@ test('turns analytics off when withdrawal cannot be saved and removes the stored
 
 test('ignores a matching stored grant while browser storage refuses removal', async ({ page }) => {
   await page.addInitScript((name) => {
-    localStorage.setItem(name, 'accepted:v1');
+    localStorage.setItem(name, 'accepted:opt-in:v1');
     Storage.prototype.removeItem = () => { throw new Error('Blocked storage removal'); };
   }, key);
   const hits = monitor(page);
@@ -172,7 +172,7 @@ test('ignores a matching stored grant while browser storage refuses removal', as
 });
 
 test('a disabled policy cannot send events or create a grant', async ({ page }) => {
-  await page.addInitScript((name) => localStorage.setItem(name, 'accepted:v1'), key);
+  await page.addInitScript((name) => localStorage.setItem(name, 'accepted:opt-in:v1'), key);
   const hits = monitor(page);
   await visit(page, '/?scenario=off');
   await expect(prompt(page)).toBeHidden();
@@ -183,7 +183,7 @@ test('a disabled policy cannot send events or create a grant', async ({ page }) 
   await expect(decline(page)).toHaveCount(0);
   await expect(prompt(page).getByRole('link', { name: 'Privacy policy' })).toBeVisible();
   await prompt(page).locator('[data-abl-consent-close]').click();
-  expect(await stored(page)).toBe('accepted:v1');
+  expect(await stored(page)).toBe('accepted:opt-in:v1');
   expect(hits).toHaveLength(0);
 });
 
@@ -221,6 +221,55 @@ test('explicit notice can opt out and remains off after reloading', async ({ pag
   await page.reload();
   await expect(prompt(page)).toBeHidden();
   expect(hits).toHaveLength(1);
+});
+
+test('requires opt-in after a notice grant on the same revision', async ({ page }) => {
+  const hits = monitor(page);
+  await visit(page, '/?scenario=notice');
+  await expect(prompt(page)).toBeVisible();
+  await accept(page).click();
+  expect(await stored(page)).toBe('accepted:notice:v1');
+
+  const beforeOptIn = hits.length;
+  await visit(page);
+  await expect(prompt(page)).toBeVisible();
+  expect(hits).toHaveLength(beforeOptIn);
+  await accept(page).click();
+  await expect.poll(() => hits.length).toBe(beforeOptIn + 1);
+  expect(await stored(page)).toBe('accepted:opt-in:v1');
+});
+
+test('starts a matching grant after late initialization and signals changes on remount', async ({ page }) => {
+  await page.addInitScript((name) => localStorage.setItem(name, 'accepted:opt-in:v1'), key);
+  const hits = monitor(page);
+  await visit(page, '/?scenario=late-mount');
+  const insert = page.getByRole('button', { name: 'Insert consent' });
+  const initialize = page.getByRole('button', { name: 'Initialize consent' });
+  const remove = page.getByRole('button', { name: 'Remove consent' });
+  const root = page.locator('[data-test-consent-mount] [data-abl-consent]');
+  const html = page.locator('html');
+
+  await expect(root).toHaveCount(0);
+  expect(hits).toHaveLength(0);
+  await insert.click();
+  await expect(root).toHaveCount(1);
+  expect(hits).toHaveLength(0);
+  await initialize.click();
+  await expect(html).toHaveAttribute('data-grant', 'true');
+  await expect.poll(() => hits.length).toBe(1);
+  await initialize.click();
+  expect(hits).toHaveLength(1);
+
+  await remove.click();
+  await expect(html).toHaveAttribute('data-grant', 'false');
+  await page.getByRole('button', { name: 'Measure another view' }).click();
+  expect(hits).toHaveLength(1);
+  await insert.click();
+  expect(hits).toHaveLength(1);
+  await initialize.click();
+  await expect(html).toHaveAttribute('data-grant', 'true');
+  await expect.poll(() => hits.length).toBe(2);
+  await expect(prompt(page)).toBeHidden();
 });
 
 for (const theme of ['light', 'dark']) {

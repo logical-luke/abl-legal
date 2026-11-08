@@ -22,18 +22,22 @@ function configuration() {
   return { root, mode, version: enabled ? version : null };
 }
 
-function parseChoice(value, version) {
+function grantValue(config) {
+  return `accepted:${config.mode}:${config.version}`;
+}
+
+function parseChoice(value, config) {
   if (value === 'declined') return 'declined';
-  return value === `accepted:${version}` ? 'accepted' : null;
+  return value === grantValue(config) ? 'accepted' : null;
 }
 
 function storedChoice(config) {
   try {
     const storage = window.localStorage;
-    let choice = parseChoice(storage.getItem(storageKey), config.version);
+    let choice = parseChoice(storage.getItem(storageKey), config);
     if (choice === 'accepted' || (choice === null && config.mode === 'notice')) {
       storage.removeItem(storageCheckKey);
-      choice = parseChoice(storage.getItem(storageKey), config.version);
+      choice = parseChoice(storage.getItem(storageKey), config);
     }
     return { choice, available: true };
   } catch {
@@ -41,10 +45,10 @@ function storedChoice(config) {
   }
 }
 
-function saveChoice(choice, version) {
+function saveChoice(choice, config) {
   try {
     const storage = window.localStorage;
-    const value = choice === 'accepted' ? `accepted:${version}` : 'declined';
+    const value = choice === 'accepted' ? grantValue(config) : 'declined';
     if (choice === 'accepted') storage.removeItem(storageCheckKey);
     storage.setItem(storageKey, value);
     return storage.getItem(storageKey) === value;
@@ -72,7 +76,7 @@ export function analyticsAllowed() {
   if (!config?.version) return false;
 
   if (pendingWithdrawal) {
-    if (!saveChoice('declined', config.version)) return false;
+    if (!saveChoice('declined', config)) return false;
     pendingWithdrawal = false;
     fallbackChoice = null;
   }
@@ -86,7 +90,7 @@ export function setConsentChoice(choice) {
   const config = configuration();
   if (!config?.version || (choice !== 'accepted' && choice !== 'declined')) return false;
 
-  let saved = saveChoice(choice, config.version);
+  let saved = saveChoice(choice, config);
   let grantCleared = false;
   if (!saved && choice === 'declined' && config.mode === 'opt-in') {
     try {

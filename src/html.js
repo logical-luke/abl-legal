@@ -19,10 +19,11 @@ export function validateLink(href) {
     return href
   }
 
-  const url = /^https:\/\/[^/]/i.test(href) ? URL.parse(href) : null
-  if (!url || !url.hostname || url.username || url.password) {
-    throw new TypeError('A link must be root-relative or an absolute HTTPS URL without credentials')
+  if (/^https:\/\/[^/]/i.test(href)) {
+    try {
+      const url = new URL(href)
+      if (url.hostname && !url.username && !url.password) return href
+    } catch {}
   }
-
-  return href
+  throw new TypeError('A link must be root-relative or an absolute HTTPS URL without credentials')
 }

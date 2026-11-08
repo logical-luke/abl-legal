@@ -33,7 +33,7 @@ function policyFor(scenario) {
 }
 
 const analytics = `
-import { analyticsAllowed } from '/abl-legal/consent.js';
+import { analyticsAllowed, initConsent } from '/abl-legal/consent.js';
 
 function record() {
   if (analyticsAllowed()) void fetch('/test-analytics', { method: 'POST' });
@@ -44,6 +44,16 @@ window.addEventListener('abl:analytics-consent', (event) => {
   if (event.detail.granted) record();
 });
 document.querySelector('[data-test-measure]')?.addEventListener('click', record);
+const template = document.querySelector('[data-test-consent-template]');
+const mount = document.querySelector('[data-test-consent-mount]');
+document.querySelector('[data-test-insert]')?.addEventListener('click', () => {
+  mount.replaceChildren(template.content.cloneNode(true));
+});
+document.querySelector('[data-test-init]')?.addEventListener('click', () => initConsent());
+document.querySelector('[data-test-remove]')?.addEventListener('click', () => {
+  mount.replaceChildren();
+  initConsent();
+});
 record();
 document.documentElement.dataset.analyticsReady = 'true';
 `;
@@ -62,7 +72,7 @@ body[data-theme="dark"] { background: #13161d; color: #f2f5fb; }
 a { color: inherit; }
 `;
 
-function pageHtml({ main, dialog, dark }) {
+function pageHtml({ main, dialog, dark, lateMount }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -75,9 +85,12 @@ function pageHtml({ main, dialog, dark }) {
   <script type="module" src="/analytics-fixture.js"></script>
 </head>
 <body${dark ? ' data-theme="dark"' : ''}>
-  <main tabindex="-1">${main}</main>
+  <main tabindex="-1">${main}${lateMount ? `
+    <button type="button" data-test-insert>Insert consent</button>
+    <button type="button" data-test-init>Initialize consent</button>
+    <button type="button" data-test-remove>Remove consent</button>` : ''}</main>
   <footer>${renderPrivacyChoices()}</footer>
-  ${dialog}
+  ${lateMount ? `<template data-test-consent-template>${dialog}</template><div data-test-consent-mount></div>` : dialog}
 </body>
 </html>`;
 }
@@ -116,6 +129,7 @@ createServer(async (request, response) => {
         main,
         dialog: renderConsent({ policy, policyHref: `/privacy${search}` }),
         dark: url.searchParams.get('theme') === 'dark',
+        lateMount: scenario === 'late-mount',
       });
     } else {
       response.writeHead(404, headers).end();
