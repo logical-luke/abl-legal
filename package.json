@@ -1,0 +1,22 @@
+{
+  "name": "abl-legal",
+  "version": "1.0.0",
+  "description": "Shared consent, privacy policy and terms components for AppsByLuke sites",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "exports": {
+    ".": { "types": "./src/index.d.ts", "default": "./src/index.js" }
+  },
+  "bin": { "abl-legal": "./bin/abl-legal.js" },
+  "files": ["assets/", "bin/", "src/"],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:browser": "playwright test",
+    "gate": "npm test && npm run test:browser && npm pack --dry-run"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1"
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/logical-luke/abl-legal.git" }
+}
